@@ -45,30 +45,31 @@ func generatePointsOnCurve(n int, xBound float64) []Point {
 }
 
 func main() {
-	points := generatePointsOnCurve(500, 100)
-	// points := []Point{{0, 3}, {2, 2}, {1, 1}, {2, 1}, {3, 0}, {0, 0}, {3, 3}}
+	// points := generatePointsOnCurve(500, 100)
+	points := []Point{{0, 3}, {2, 2}, {1, 1}, {2, 1}, {3, 0}, {0, 0}, {3, 3}}
 
-	hull := INC_CH(points)
+	fmt.Println(PAR_GS(points, 2))
+	// hull := INC_CH(points)
 
-	fmt.Println("Convex Hull")
-	fmt.Printf("points = [")
-	for idx, p := range points {
-		fmt.Printf("(%f, %f)", p.x, p.y)
-		if idx < len(points)-1 {
-			fmt.Printf(", ")
-		} else {
-			fmt.Printf("]\n")
-		}
-	}
+	// fmt.Println("Convex Hull")
+	// fmt.Printf("points = [")
+	// for idx, p := range points {
+	// 	fmt.Printf("(%f, %f)", p.x, p.y)
+	// 	if idx < len(points)-1 {
+	// 		fmt.Printf(", ")
+	// 	} else {
+	// 		fmt.Printf("]\n")
+	// 	}
+	// }
 
-	fmt.Printf("hull_points = [")
-	for idx, p := range hull {
-		fmt.Printf("(%f, %f)", p.x, p.y)
-		if idx < len(hull)-1 {
-			fmt.Printf(", ")
-		} else {
-			fmt.Printf("]\n")
-		}
-	}
+	// fmt.Printf("hull_points = [")
+	// for idx, p := range hull {
+	// 	fmt.Printf("(%f, %f)", p.x, p.y)
+	// 	if idx < len(hull)-1 {
+	// 		fmt.Printf(", ")
+	// 	} else {
+	// 		fmt.Printf("]\n")
+	// 	}
+	// }
 
 }
