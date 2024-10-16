@@ -13,25 +13,6 @@ func reversePoints(points []Point) {
 	}
 }
 
-type Point struct{ x, y float64 }
-
-const (
-	COLLINEAR = iota
-	RIGHT
-	LEFT
-)
-
-func orientation(p, q, r Point) int {
-	val := (q.y-p.y)*(r.x-q.x) - (q.x-p.x)*(r.y-q.y)
-	if val == 0 {
-		return COLLINEAR
-	} else if val > 0 {
-		return RIGHT
-	} else {
-		return LEFT
-	}
-}
-
 // Graham Scan
 func INC_CH(points []Point) []Point {
 	// Sort by lowest x coordinate
