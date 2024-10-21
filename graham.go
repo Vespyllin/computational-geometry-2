@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 )
@@ -15,10 +14,10 @@ func sortPointsX(points []Point) {
 	})
 }
 
-// Graham Scan Starter
+// Graham Scan Wrapper.
+// p = 0 runs the algorithm in sequential mode.
 func INC_CH(points []Point, p int) []Point {
 	// Sort by lowest x coordinate
-	sortPointsX(points)
 
 	var res []Point
 	if p == 0 {
@@ -27,10 +26,10 @@ func INC_CH(points []Point, p int) []Point {
 		res = PAR_GS(points, p)
 	}
 
-	sortPointsX(res)
+	// Sort the result for easy result comparison
+	// sortPointsX(res)
 
 	return res
-
 }
 
 func GS(points []Point) []Point {
@@ -80,52 +79,64 @@ func PAR_GS(points []Point, p int) []Point {
 
 	wg.Wait()
 
-	bridges := []Line{}
-	for i := 0; i < p-1; i++ {
-		fmt.Println(i)
+	finalHull := []Point{}
+	lastL := 0
+	lastR := 0
+	for i := 0; i < p-1; {
 		tanLines := []Line{}
+		tanLineHullIdx := [][]int{}
 		for j := i + 1; j < p; j++ {
-			fmt.Println("j", j)
-			tanLines = append(tanLines, getTangentialPoints(hulls[i], hulls[j])) // append Tangent between Ui and Uj
+			l, r := getTangentialPoints(hulls[i], hulls[j])
+
+			tanLines = append(tanLines, Line{hulls[i][l], hulls[j][r]}) // Append tangent between Ui and Uj
+			tanLineHullIdx = append(tanLineHullIdx, []int{l, r})        // Also keep track of the indexes for said tangent
 		}
 
-		minTan, minTanIdx := findMinRotationTangent(tanLines)
-		bridges = append(bridges, minTan)
+		minTanIdx := findMinRotationTangentIdx(tanLines)
+		bridge := tanLines[minTanIdx]
 
-		i = i + minTanIdx
-		fmt.Println("new i", i)
+		leftTangentPoint := tanLineHullIdx[minTanIdx][0]
+		rightTangentPoint := tanLineHullIdx[minTanIdx][1]
+
+		// If there are intermediary points append them to the hull before the bridge
+		if lastL <= leftTangentPoint {
+			intermediaryPoints := hulls[i][lastL:leftTangentPoint]
+			finalHull = append(finalHull, intermediaryPoints...)
+			finalHull = append(finalHull, bridge.p1, bridge.p2)
+		} else {
+			finalHull = append(finalHull, bridge.p2) // Otherwise append the next point on the bridge
+		}
+
+		lastL = rightTangentPoint + 1
+		lastR = tanLineHullIdx[minTanIdx][1]
+
+		i = i + 1 + minTanIdx
 	}
 
-	fmt.Println("bridges")
-	fmt.Println(bridges)
-
-	finalHull := hulls[0]
-	// for i := 1; i < len(hulls); i++ {
-	// 	// finalHull = mergeHulls(finalHull, hulls[i])
-	// 	// sortPointsX(finalHull)
-	// }
-	// fmt.Println(finalHull)
+	// Append any remaining points after the final bridge
+	if p != 1 {
+		lastR += 1
+	}
+	finalHull = append(finalHull, hulls[len(hulls)-1][lastR:]...)
 
 	return finalHull
 }
 
-func findMinRotationTangent(lines []Line) (Line, int) {
-	minTangent := lines[0]
-	minIdx := 0
+func findMinRotationTangentIdx(lines []Line) int {
+	minIndex := 0
 
-	for idx, line := range lines[1:] {
+	for i := 1; i < len(lines); i++ {
 		// Compare rotation by checking the orientation
-		if orientation(line.p1, line.p2, minTangent.p2) == LEFT {
-			minTangent = line
-			minIdx = idx
+		if orientation(lines[i].p1, lines[i].p2, lines[minIndex].p2) == RIGHT {
+			minIndex = i
 		}
 	}
 
-	return minTangent, minIdx
+	return minIndex
 }
 
 // Returns left and right hull points forming a bridge
-func getTangentialPoints(leftHull, rightHull []Point) Line {
+func getTangentialPoints(leftHull, rightHull []Point) (int, int) {
 	TARGET_ORIENTATION := LEFT
 
 	leftIdx := len(leftHull) - 1
@@ -146,8 +157,7 @@ func getTangentialPoints(leftHull, rightHull []Point) Line {
 		} else if orientation(leftHull[prevLeftIdx], leftHull[leftIdx], rightHull[rightIdx]) == TARGET_ORIENTATION { // Attempt to adjust left bridge point to the right
 			leftIdx = prevLeftIdx
 		} else {
-			return Line{leftHull[leftIdx], rightHull[rightIdx]}
+			return leftIdx, rightIdx
 		}
 	}
-
 }
