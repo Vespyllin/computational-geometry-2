@@ -2,20 +2,19 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"os"
 	"strconv"
 )
 
-type Point struct{ x, y float64 }
-
 func generatePointsInSquare(n int, sideLength float64) []Point {
 	points := make([]Point, n)
 
 	for i := 0; i < n; i++ {
-		x := rand.Float64() * sideLength
-		y := rand.Float64() * sideLength
+		x := float64(int(rand.Float64() * sideLength))
+		y := float64(int(rand.Float64() * sideLength))
 		points[i] = Point{x, y}
 	}
 
@@ -36,13 +35,6 @@ func generatePointsInCircle(n int, radius float64) []Point {
 	return points
 }
 
-// moved from Graham
-const (
-	COLLINEAR = iota
-	RIGHT
-	LEFT
-)
-
 func generatePointsOnCurve(n int, xBound float64) []Point {
 	points := make([]Point, n)
 
@@ -53,18 +45,6 @@ func generatePointsOnCurve(n int, xBound float64) []Point {
 	}
 
 	return points
-}
-
-// moved from Graham
-func orientation(p, q, r Point) int {
-	val := (q.y-p.y)*(r.x-q.x) - (q.x-p.x)*(r.y-q.y)
-	if val == 0 {
-		return COLLINEAR
-	} else if val > 0 {
-		return RIGHT
-	} else {
-		return LEFT
-	}
 }
 
 // SavePointsToCSV saves points and hull points to a CSV file
@@ -104,59 +84,40 @@ func SavePointsToCSV(points []Point, hull []Point, filename string) error {
 
 // generateRandomPoints
 func generateRandomPoints(n int, boundX, boundY float64) []Point {
-    points := make([]Point, n)
+	points := make([]Point, n)
 
-    for i := 0; i < n; i++ {
-        x := (rand.Float64() * 2 * boundX) - boundX  // Random x within [-boundX, boundX]
-        y := (rand.Float64() * 2 * boundY) - boundY  // Random y within [-boundY, boundY]
-        points[i] = Point{x, y}
-    }
+	for i := 0; i < n; i++ {
+		x := (rand.Float64() * 2 * boundX) - boundX // Random x within [-boundX, boundX]
+		y := (rand.Float64() * 2 * boundY) - boundY // Random y within [-boundY, boundY]
+		points[i] = Point{x, y}
+	}
 
-    return points
+	return points
 }
 
-
 func main() {
-	points := generateRandomPoints(150, 100, 100)  // Generate 150 random points in a 200x200 box
+	// points := generateRandomPoints(150, 100, 100) // Generate 150 random points in a 200x200 box
 
-	// points := generatePointsOnCurve(500, 100)
-	// points := []Point{{0, 3}, {2, 2}, {1, 1}, {2, 1}, {3, 0}, {0, 0}, {3, 3}}
+	// points := generatePointsInSquare(15, 1000)
+	points := []Point{{64, 792}, {91, 9}, {111, 348}, {128, 3}, {162, 623}, {327, 794}, {436, 597}, {488, 221}, {562, 129}, {588, 398}, {728, 182}, {748, 927}, {913, 176}, {984, 716}, {990, 865}}
+	// points1 := []Point{{0, 3}, {2, 2}, {1, 1}, {2, 1} /* */, {3, 0}, {0, 0}, {3, 3}, {4, 2}}
 
-	// fmt.Println(PAR_GS(points, 2))
-	//
-	// fmt.Println(GiftWrapping(points))
+	res1 := INC_CH(points, 0)
+	res2 := INC_CH(points, 3)
 
-	hull := GiftWrapping(points)
-	hullParGs := PAR_GS(points, 2)
-	hullParGsP := PAR_GS1(points, 2)
-	hullGs := INC_CH(points)
+	fmt.Printf("POINTS\n")
+	for _, p := range points {
+		fmt.Printf("(%.0f, %.0f), ", p.x, p.y)
+	}
 
-	SavePointsToCSV(points, hull, "GiftWrapping.csv")
-	SavePointsToCSV(points, hullGs, "GrahamIncScan.csv")
-	SavePointsToCSV(points, hullParGs, "ParallelGrahamScanPaul.csv")
-	SavePointsToCSV(points, hullParGsP, "ParallelGrahamScanMe.csv")
+	fmt.Printf("\nSEQ CH\n")
+	for _, p := range res1 {
+		fmt.Printf("(%.0f, %.0f), ", p.x, p.y)
+	}
+	fmt.Printf("\nPAR CH\n")
+	for _, p := range res2 {
+		fmt.Printf("(%.0f, %.0f), ", p.x, p.y)
+	}
 
-	// hull := INC_CH(points)
-
-	// fmt.Println("Convex Hull")
-	// fmt.Printf("points = [")
-	// for idx, p := range points {
-	// 	fmt.Printf("(%f, %f)", p.x, p.y)
-	// 	if idx < len(points)-1 {
-	// 		fmt.Printf(", ")
-	// 	} else {
-	// 		fmt.Printf("]\n")
-	// 	}
-	// }
-
-	// fmt.Printf("hull_points = [")
-	// for idx, p := range hull {
-	// 	fmt.Printf("(%f, %f)", p.x, p.y)
-	// 	if idx < len(hull)-1 {
-	// 		fmt.Printf(", ")
-	// 	} else {
-	// 		fmt.Printf("]\n")
-	// 	}
-	// }
-
+	fmt.Println()
 }
