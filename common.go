@@ -2,6 +2,8 @@ package main
 
 type Point struct{ x, y float64 }
 
+type Line struct{ p1, p2 Point }
+
 const (
 	COLLINEAR = iota
 	RIGHT
