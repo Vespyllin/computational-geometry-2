@@ -98,19 +98,32 @@ func generateRandomPoints(n int, boundX, boundY float64) []Point {
 
 func main() {
 	points := generatePointsInCircle(100000000, 1000)
-	// points := []Point{{64, 792}, {91, 9}, {111, 348}, {128, 3}, {162, 623}, {327, 794}, {436, 597}, {488, 221}, {562, 129}, {588, 398}, {728, 182}, {748, 927}, {913, 176}, {984, 716}, {990, 865}}
-	// points := []Point{{0, 3}, {2, 2}, {1, 1}, {2, 1}, {2, 2} /* */, {3, 0}, {0, 0}, {3, 3}, {4, 2}}
-	// points := []Point{{0, 3}, {2, 6}, {4, 3}, {1, 5}, {2.5, 6} /* */, {4, 0}, {0, 0}, {3, 5}, {5, 1}}
 
 	sortPointsX(points)
 
+	fmt.Println("Starting test")
+	times := []int{}
+	programCounters := []int{}
+
 	start1 := time.Now()
-	resS := INC_CH(points, 0)
-	elapsed1 := time.Since(start1)
+	_, progCtr1 := GS(points)
+	elapsed1 := time.Since(start1).Nanoseconds()
 
 	start2 := time.Now()
-	resP := INC_CH(points, 1)
-	elapsed2 := time.Since(start2)
+	_, progCtr2 := PAR_GS(points, 1)
+	elapsed2 := time.Since(start2).Nanoseconds()
 
-	fmt.Printf("%4d  (%10d)\n%4d  (%10d)\n\t===> %t\n", len(resS), elapsed1.Nanoseconds(), len(resP), elapsed2.Nanoseconds(), len(resS) == len(resP))
+	start3 := time.Now()
+	_, progCtr3 := PAR_GS(points, 3)
+	elapsed3 := time.Since(start3).Nanoseconds()
+
+	start4 := time.Now()
+	_, progCtr4 := PAR_GS(points, 6)
+	elapsed4 := time.Since(start4).Nanoseconds()
+
+	times = append(times, int(elapsed1), int(elapsed2), int(elapsed3), int(elapsed4))
+	programCounters = append(programCounters, progCtr1, progCtr2, progCtr3, progCtr4)
+
+	fmt.Println(times)
+	fmt.Println(programCounters)
 }
