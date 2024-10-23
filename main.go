@@ -51,7 +51,6 @@ func generatePointsOnCurve(n int, xBound float64) []ch.Point {
 }
 
 func writeBenchmarkLineToCSV(writer *csv.Writer, n, sortTime int, runtimes, programCounters, backtrackCounters, bridgeCounters []int) {
-
 	// Write the results as a new row
 	record := []string{strconv.Itoa(n), strconv.Itoa(sortTime)}
 	for i := 0; i < 4; i++ {
@@ -76,14 +75,14 @@ func writeBenchmarkLineToCSV(writer *csv.Writer, n, sortTime int, runtimes, prog
 }
 
 func main() {
-	sizes := []int{65536000}
-	// for i := 0; i < 9; i++ {
-	// 	sizes = append(sizes, sizes[len(sizes)-1]*2)
-	// }
+	sizes := []int{128000}
+	for i := 0; i < 9; i++ {
+		sizes = append(sizes, sizes[len(sizes)-1]*2)
+	}
 	iterations := 10
 	floatConstant := 10000.0
 
-	for testClass := 2; testClass < 3; testClass++ {
+	for testClass := 0; testClass < 3; testClass++ {
 
 		var fileName string
 		if testClass == 0 {
@@ -109,7 +108,7 @@ func main() {
 		}
 
 		for _, n := range sizes {
-			for i := 4; i < iterations; i++ {
+			for i := 0; i < iterations; i++ {
 				fmt.Printf("Class:\t%6s | Size:\t%9d | Iteration\t%d\n", fileName, n, i+1)
 
 				var points []ch.Point
