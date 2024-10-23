@@ -8,122 +8,168 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	ch "computational_geometry_2/convex_hull"
 )
 
-func generatePointsInSquare(n int, sideLength float64) []Point {
-	points := make([]Point, n)
+func generatePointsInSquare(n int, sideLength float64) []ch.Point {
+	points := make([]ch.Point, n)
 
 	for i := 0; i < n; i++ {
 		x := rand.Float64() * sideLength
 		y := rand.Float64() * sideLength
-		points[i] = Point{x, y}
+		points[i] = ch.Point{X: x, Y: y}
 	}
 
 	return points
 }
 
-func generatePointsInCircle(n int, radius float64) []Point {
-	points := make([]Point, n)
+func generatePointsInCircle(n int, radius float64) []ch.Point {
+	points := make([]ch.Point, n)
 
 	for i := 0; i < n; i++ {
 		r := radius * math.Sqrt(rand.Float64())
 		theta := rand.Float64() * 2 * math.Pi
 		x := r * math.Cos(theta)
 		y := r * math.Sin(theta)
-		points[i] = Point{x, y}
+		points[i] = ch.Point{X: x, Y: y}
 	}
 
 	return points
 }
 
-func generatePointsOnCurve(n int, xBound float64) []Point {
-	points := make([]Point, n)
+func generatePointsOnCurve(n int, xBound float64) []ch.Point {
+	points := make([]ch.Point, n)
 
 	for i := 0; i < n; i++ {
 		x := (rand.Float64() * 2 * xBound) - xBound
 		y := -(x * x)
-		points[i] = Point{x, y}
+		points[i] = ch.Point{X: x, Y: y}
 	}
 
 	return points
 }
 
-// SavePointsToCSV saves points and hull points to a CSV file
-func SavePointsToCSV(points []Point, hull []Point, filename string) error {
-	file, err := os.Create(filename)
+func writeBenchmarkLineToCSV(writer *csv.Writer, n, sortTime int, runtimes, programCounters, backtrackCounters, bridgeCounters []int) {
+
+	// Write the results as a new row
+	record := []string{strconv.Itoa(n), strconv.Itoa(sortTime)}
+	for i := 0; i < 4; i++ {
+		record = append(record, strconv.Itoa(runtimes[i]))
+	}
+	for i := 0; i < 4; i++ {
+		record = append(record, strconv.Itoa(programCounters[i]))
+	}
+	for i := 0; i < 4; i++ {
+		record = append(record, strconv.Itoa(backtrackCounters[i]))
+	}
+	for i := 0; i < 4; i++ {
+		record = append(record, strconv.Itoa(bridgeCounters[i]))
+	}
+
+	err := writer.Write(record)
 	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	// Write headers
-	writer.Write([]string{"Main Points", "Convex Hull Points"})
-
-	// Find the max length between points and hull
-	maxLen := len(points)
-	if len(hull) > maxLen {
-		maxLen = len(hull)
+		fmt.Println("Error writing to file:", err)
 	}
 
-	// Write points
-	for i := 0; i < maxLen; i++ {
-		var mainPoint, hullPoint string
-		if i < len(points) {
-			mainPoint = strconv.FormatFloat(points[i].x, 'f', 2, 64) + "," + strconv.FormatFloat(points[i].y, 'f', 2, 64)
-		}
-		if i < len(hull) {
-			hullPoint = strconv.FormatFloat(hull[i].x, 'f', 2, 64) + "," + strconv.FormatFloat(hull[i].y, 'f', 2, 64)
-		}
-		writer.Write([]string{mainPoint, hullPoint})
-	}
-
-	return nil
-}
-
-// generateRandomPoints
-func generateRandomPoints(n int, boundX, boundY float64) []Point {
-	points := make([]Point, n)
-
-	for i := 0; i < n; i++ {
-		x := (rand.Float64() * 2 * boundX) - boundX // Random x within [-boundX, boundX]
-		y := (rand.Float64() * 2 * boundY) - boundY // Random y within [-boundY, boundY]
-		points[i] = Point{x, y}
-	}
-
-	return points
+	writer.Flush()
 }
 
 func main() {
-	points := generatePointsInCircle(100000000, 1000)
+	sizes := []int{65536000}
+	// for i := 0; i < 9; i++ {
+	// 	sizes = append(sizes, sizes[len(sizes)-1]*2)
+	// }
+	iterations := 10
+	floatConstant := 10000.0
 
-	sortPointsX(points)
+	for testClass := 2; testClass < 3; testClass++ {
 
-	fmt.Println("Starting test")
-	times := []int{}
-	programCounters := []int{}
+		var fileName string
+		if testClass == 0 {
+			fileName = "square"
+		} else if testClass == 1 {
+			fileName = "circle"
+		} else {
+			fileName = "curve"
+		}
 
-	start1 := time.Now()
-	_, progCtr1 := GS(points)
-	elapsed1 := time.Since(start1).Nanoseconds()
+		fmt.Println("Starting ", fileName, " benchmarks.")
 
-	start2 := time.Now()
-	_, progCtr2 := PAR_GS(points, 1)
-	elapsed2 := time.Since(start2).Nanoseconds()
+		file, err := os.OpenFile("data/"+fileName+"/"+fileName+".csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Println("Error opening file:", err)
+			return
+		}
+		writer := csv.NewWriter(file)
+		err = writer.Write([]string{"n", "sortTime", "seqRuntime", "p1Runtime", "p3Runtime", "p6Runtime", "seqCounter", "p1Counter", "p3Counter", "p6Counter", "bckCounterSeq", "bckCounterP1", "bckCounterP3", "bckCounterP6", "bridgeCounterSeq", "bridgeCounterP1", "bridgeCounterP3", "bridgeCounterP6"})
+		if err != nil {
+			fmt.Println("Error writing to file:", err)
+			return
+		}
 
-	start3 := time.Now()
-	_, progCtr3 := PAR_GS(points, 3)
-	elapsed3 := time.Since(start3).Nanoseconds()
+		for _, n := range sizes {
+			for i := 4; i < iterations; i++ {
+				fmt.Printf("Class:\t%6s | Size:\t%9d | Iteration\t%d\n", fileName, n, i+1)
 
-	start4 := time.Now()
-	_, progCtr4 := PAR_GS(points, 6)
-	elapsed4 := time.Since(start4).Nanoseconds()
+				var points []ch.Point
+				if testClass == 0 {
+					points = generatePointsInSquare(n, floatConstant)
+				} else if testClass == 1 {
+					points = generatePointsInCircle(n, floatConstant)
+				} else if testClass == 2 {
+					points = generatePointsOnCurve(n, floatConstant)
+				} else {
+					panic("WRONG CLASS COUNT")
+				}
 
-	times = append(times, int(elapsed1), int(elapsed2), int(elapsed3), int(elapsed4))
-	programCounters = append(programCounters, progCtr1, progCtr2, progCtr3, progCtr4)
+				fmt.Println("Generated Points")
+				startSort := time.Now()
+				ch.SortPointsByX(points)
+				elapsedSort := time.Since(startSort).Nanoseconds()
+				fmt.Println("Sorted Points")
 
-	fmt.Println(times)
-	fmt.Println(programCounters)
+				times := []int{}
+				programCounters := []int{}
+				backtrackCounters := []int{}
+				bridgeCounters := []int{}
+
+				fmt.Print("Started Sequential Graham Scan")
+				startSeq := time.Now()
+				_, progCtrSeq, bckCtrSeq := ch.INC_CH(points)
+				elapsedSeq := time.Since(startSeq).Nanoseconds()
+				fmt.Println("\rFinished Sequential Graham Scan")
+
+				fmt.Print("Started Parallel Graham Scan (p=1)")
+				startP1 := time.Now()
+				_, progCtrP1, bckCtrP1, bridgeCtrP1 := ch.PAR_GS(points, 1)
+				elapsedP1 := time.Since(startP1).Nanoseconds()
+				fmt.Println("\rFinished Parallel Graham Scan (p=1)")
+
+				fmt.Print("Started Parallel Graham Scan (p=3)")
+				startP3 := time.Now()
+				_, progCtrP3, bckCtrP3, bridgeCtrP3 := ch.PAR_GS(points, 3)
+				elapsedP3 := time.Since(startP3).Nanoseconds()
+				fmt.Println("\rFinished Parallel Graham Scan (p=3)")
+
+				fmt.Print("Started Parallel Graham Scan (p=6)")
+				startP6 := time.Now()
+				_, progCtrP6, bckCtrP6, bridgeCtrP6 := ch.PAR_GS(points, 6)
+				elapsedP6 := time.Since(startP6).Nanoseconds()
+				fmt.Println("\rFinished Parallel Graham Scan (p=6)")
+
+				times = append(times, int(elapsedSeq), int(elapsedP1), int(elapsedP3), int(elapsedP6))
+				programCounters = append(programCounters, progCtrSeq, progCtrP1, progCtrP3, progCtrP6)
+				backtrackCounters = append(backtrackCounters, bckCtrSeq, bckCtrP1, bckCtrP3, bckCtrP6)
+				bridgeCounters = append(bridgeCounters, 0, bridgeCtrP1, bridgeCtrP3, bridgeCtrP6)
+
+				fmt.Println("Writing results...")
+				writeBenchmarkLineToCSV(writer, n, int(elapsedSort), times, programCounters, backtrackCounters, bridgeCounters)
+				fmt.Println()
+			}
+		}
+
+		file.Close()
+	}
+
 }

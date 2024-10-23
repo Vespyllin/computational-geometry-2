@@ -1,32 +1,25 @@
-package main
+package convex_hull
 
 import (
-	"sort"
 	"sync"
 )
 
-func sortPointsX(points []Point) {
-	sort.Slice(points, func(i, j int) bool {
-		if points[i].x == points[j].x {
-			return points[i].y < points[j].y
-		}
-		return points[i].x < points[j].x
-	})
-}
-
-func GS(points []Point) ([]Point, int) {
+func INC_CH(points []Point) ([]Point, int, int) {
 	counter := 0
+	backtrackCounter := 0
+
 	n := len(points)
 	if n < 3 {
-		return points, counter
+		return points, counter, backtrackCounter
 	}
 
 	upperHull := []Point{points[0], points[1]}
 	for i := 2; i < n; i++ {
-		// If the next point makes the convex hull invalid, pop points off the hull until it doesn't
+		// If a left turn is found, pop points off the hull until a convex hull is formed containing the new point
 		for len(upperHull) >= 2 && orientation(upperHull[len(upperHull)-2], upperHull[len(upperHull)-1], points[i]) == LEFT {
 			upperHull = upperHull[:len(upperHull)-1]
 			counter++
+			backtrackCounter++
 		}
 
 		// Append the point to the hull
@@ -34,10 +27,10 @@ func GS(points []Point) ([]Point, int) {
 		counter++
 	}
 
-	return upperHull, counter
+	return upperHull, counter, backtrackCounter
 }
 
-func PAR_GS(points []Point, p int) ([]Point, int) {
+func PAR_GS(points []Point, p int) ([]Point, int, int, int) {
 	counter := 0
 	avgSliceLen := len(points) / p
 	remaining := len(points) % p
@@ -47,6 +40,7 @@ func PAR_GS(points []Point, p int) ([]Point, int) {
 
 	hulls := make([][]Point, p)
 	parallelCounters := make([]int, p)
+	backtrackCounters := make([]int, p)
 
 	considered := 0
 	for i := 0; i < p; i++ {
@@ -61,10 +55,11 @@ func PAR_GS(points []Point, p int) ([]Point, int) {
 		go func(pointsSlice []Point, rank int) {
 			defer wg.Done()
 
-			hull, subCounter := GS(pointsSlice)
+			hull, subCounter, backtrackCounter := INC_CH(pointsSlice)
 
 			hulls[i] = hull
 			parallelCounters[i] = subCounter
+			backtrackCounters[i] = backtrackCounter
 		}(activeSlice, i)
 
 		considered += sliceLen
@@ -73,22 +68,27 @@ func PAR_GS(points []Point, p int) ([]Point, int) {
 	wg.Wait()
 
 	maxParCtr := 0
-	for _, parCtr := range parallelCounters {
+	maxBckCtr := 0
+	for idx, parCtr := range parallelCounters {
 		if parCtr > maxParCtr {
 			maxParCtr = parCtr
+			maxBckCtr = backtrackCounters[idx]
 		}
 	}
 	counter += maxParCtr
 
+	bridgeCounter := 0
 	finalHull := []Point{}
 	lastL := 0
 	lastR := 0
 	for i := 0; i < p-1; {
+		bridgeCounter++
 		counter++
 		tanLines := []Line{}
 		tanLineHullIdx := [][]int{}
 		for j := i + 1; j < p; j++ {
 			counter++
+			bridgeCounter++
 
 			l, r, tanPointsCtr := getTangentialPoints(hulls[i], hulls[j])
 			counter += tanPointsCtr
@@ -126,7 +126,7 @@ func PAR_GS(points []Point, p int) ([]Point, int) {
 	}
 	finalHull = append(finalHull, hulls[len(hulls)-1][lastR:]...)
 
-	return finalHull, counter
+	return finalHull, counter, maxBckCtr, bridgeCounter
 }
 
 func findMinRotationTangentIdx(lines []Line) (int, int) {

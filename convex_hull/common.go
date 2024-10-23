@@ -1,6 +1,8 @@
-package main
+package convex_hull
 
-type Point struct{ x, y float64 }
+import "sort"
+
+type Point struct{ X, Y float64 }
 
 type Line struct{ p1, p2 Point }
 
@@ -11,7 +13,7 @@ const (
 )
 
 func orientation(p, q, r Point) int {
-	val := (q.y-p.y)*(r.x-q.x) - (q.x-p.x)*(r.y-q.y)
+	val := (q.Y-p.Y)*(r.X-q.X) - (q.X-p.X)*(r.Y-q.Y)
 
 	if val == 0 {
 		return COLLINEAR
@@ -20,6 +22,15 @@ func orientation(p, q, r Point) int {
 	} else {
 		return LEFT
 	}
+}
+
+func SortPointsByX(points []Point) {
+	sort.Slice(points, func(i, j int) bool {
+		if points[i].X == points[j].X {
+			return points[i].Y < points[j].Y
+		}
+		return points[i].X < points[j].X
+	})
 }
 
 // Used for graphing purposes
