@@ -50,9 +50,9 @@ func generatePointsOnCurve(n int, xBound float64) []ch.Point {
 	return points
 }
 
-func writeBenchmarkLineToCSV(writer *csv.Writer, n, sortTime int, runtimes, programCounters, backtrackCounters, bridgeCounters []int) {
+func writeBenchmarkLineToCSV(writer *csv.Writer, n, hull_size, sortTime int, runtimes, programCounters, backtrackCounters, bridgeCounters []int) {
 	// Write the results as a new row
-	record := []string{strconv.Itoa(n), strconv.Itoa(sortTime)}
+	record := []string{strconv.Itoa(n), strconv.Itoa(hull_size), strconv.Itoa(sortTime)}
 	for i := 0; i < 4; i++ {
 		record = append(record, strconv.Itoa(runtimes[i]))
 	}
@@ -74,15 +74,92 @@ func writeBenchmarkLineToCSV(writer *csv.Writer, n, sortTime int, runtimes, prog
 	writer.Flush()
 }
 
-func main() {
+func benchMarkGW() {
+	sizes := []int{32000}
+	for i := 0; i < 11; i++ {
+		sizes = append(sizes, sizes[len(sizes)-1]*2)
+	}
+	iterations := 3
+	floatConstant := 10000.0
+
+	file, err := os.OpenFile("data/gw/gw.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return
+	}
+	writer := csv.NewWriter(file)
+	err = writer.Write([]string{"n", "rtSquare", "rtCircle", "rtCurve", "pcSquare", "pcCircle", "pcCurve"})
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+
+	for _, n := range sizes {
+		for i := 0; i < iterations; i++ {
+			fmt.Printf("Size:\t%9d | Iteration\t%d\n", n, i+1)
+
+			times := []int{}
+			programCounters := []int{}
+
+			fmt.Println("Generating Points")
+			pointsSquare := generatePointsInSquare(n, floatConstant)
+			pointsCircle := generatePointsInCircle(n, floatConstant)
+			pointsCurve := generatePointsOnCurve(n, floatConstant)
+			if n > 256000 {
+				pointsCurve = []ch.Point{}
+			}
+
+			fmt.Print("Started square Gift Wrapping")
+			startSquare := time.Now()
+			_, ctrSquare := ch.GIFT_CH(pointsSquare)
+			elapsedSquare := time.Since(startSquare).Nanoseconds()
+			fmt.Println("\rFinished square Gift Wrapping")
+
+			fmt.Print("Started circle Gift Wrapping")
+			startCircle := time.Now()
+			_, ctrCircle := ch.GIFT_CH(pointsCircle)
+			elapsedCircle := time.Since(startCircle).Nanoseconds()
+			fmt.Println("\rFinished circle Gift Wrapping")
+
+			fmt.Print("Started curve Gift Wrapping")
+			startCurve := time.Now()
+			_, ctrCurve := ch.GIFT_CH(pointsCurve)
+			elapsedCurve := time.Since(startCurve).Nanoseconds()
+			fmt.Println("\rFinished curve Gift Wrapping")
+
+			times = append(times, int(elapsedSquare), int(elapsedCircle), int(elapsedCurve))
+			programCounters = append(programCounters, ctrSquare, ctrCircle, ctrCurve)
+
+			fmt.Println("Writing results...")
+
+			record := []string{strconv.Itoa(n)}
+			for i := 0; i < 3; i++ {
+				record = append(record, strconv.Itoa(times[i]))
+			}
+			for i := 0; i < 3; i++ {
+				record = append(record, strconv.Itoa(programCounters[i]))
+			}
+
+			writer.Write(record)
+
+			writer.Flush()
+
+			fmt.Println()
+		}
+
+	}
+	file.Close()
+}
+
+func benchMarkGS() {
 	sizes := []int{128000}
 	for i := 0; i < 9; i++ {
 		sizes = append(sizes, sizes[len(sizes)-1]*2)
 	}
-	iterations := 10
+	iterations := 3
 	floatConstant := 10000.0
 
-	for testClass := 0; testClass < 3; testClass++ {
+	for testClass := 2; testClass < 3; testClass++ {
 
 		var fileName string
 		if testClass == 0 {
@@ -101,7 +178,7 @@ func main() {
 			return
 		}
 		writer := csv.NewWriter(file)
-		err = writer.Write([]string{"n", "sortTime", "seqRuntime", "p1Runtime", "p3Runtime", "p6Runtime", "seqCounter", "p1Counter", "p3Counter", "p6Counter", "bckCounterSeq", "bckCounterP1", "bckCounterP3", "bckCounterP6", "bridgeCounterSeq", "bridgeCounterP1", "bridgeCounterP3", "bridgeCounterP6"})
+		err = writer.Write([]string{"n", "hullSize", "sortTime", "seqRuntime", "p1Runtime", "p3Runtime", "p6Runtime", "seqCounter", "p1Counter", "p3Counter", "p6Counter", "bckCounterSeq", "bckCounterP1", "bckCounterP3", "bckCounterP6", "bridgeCounterSeq", "bridgeCounterP1", "bridgeCounterP3", "bridgeCounterP6"})
 		if err != nil {
 			fmt.Println("Error writing to file:", err)
 			return
@@ -135,7 +212,7 @@ func main() {
 
 				fmt.Print("Started Sequential Graham Scan")
 				startSeq := time.Now()
-				_, progCtrSeq, bckCtrSeq := ch.INC_CH(points)
+				h, progCtrSeq, bckCtrSeq := ch.INC_CH(points)
 				elapsedSeq := time.Since(startSeq).Nanoseconds()
 				fmt.Println("\rFinished Sequential Graham Scan")
 
@@ -162,13 +239,17 @@ func main() {
 				backtrackCounters = append(backtrackCounters, bckCtrSeq, bckCtrP1, bckCtrP3, bckCtrP6)
 				bridgeCounters = append(bridgeCounters, 0, bridgeCtrP1, bridgeCtrP3, bridgeCtrP6)
 
-				fmt.Println("Writing results...")
-				writeBenchmarkLineToCSV(writer, n, int(elapsedSort), times, programCounters, backtrackCounters, bridgeCounters)
+				fmt.Println("Writing results...", len(h), elapsedSort)
+				writeBenchmarkLineToCSV(writer, n, len(h), int(elapsedSort), times, programCounters, backtrackCounters, bridgeCounters)
 				fmt.Println()
 			}
 		}
 
 		file.Close()
 	}
+}
 
+func main() {
+	benchMarkGS()
+	benchMarkGW()
 }

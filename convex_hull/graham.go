@@ -13,11 +13,15 @@ func INC_CH(points []Point) ([]Point, int, int) {
 		return points, counter, backtrackCounter
 	}
 
-	upperHull := []Point{points[0], points[1]}
+	upperHull := make([]Point, 2, len(points))
+	upperHull[0] = points[0]
+	upperHull[1] = points[1]
+
 	for i := 2; i < n; i++ {
 		// If a left turn is found, pop points off the hull until a convex hull is formed containing the new point
 		for len(upperHull) >= 2 && orientation(upperHull[len(upperHull)-2], upperHull[len(upperHull)-1], points[i]) == LEFT {
 			upperHull = upperHull[:len(upperHull)-1]
+
 			counter++
 			backtrackCounter++
 		}
@@ -55,11 +59,7 @@ func PAR_GS(points []Point, p int) ([]Point, int, int, int) {
 		go func(pointsSlice []Point, rank int) {
 			defer wg.Done()
 
-			hull, subCounter, backtrackCounter := INC_CH(pointsSlice)
-
-			hulls[i] = hull
-			parallelCounters[i] = subCounter
-			backtrackCounters[i] = backtrackCounter
+			hulls[i], parallelCounters[i], backtrackCounters[i] = INC_CH(pointsSlice)
 		}(activeSlice, i)
 
 		considered += sliceLen
@@ -78,12 +78,13 @@ func PAR_GS(points []Point, p int) ([]Point, int, int, int) {
 	counter += maxParCtr
 
 	bridgeCounter := 0
-	finalHull := []Point{}
+	finalHull := make([]Point, 0, len(points))
 	lastL := 0
 	lastR := 0
 	for i := 0; i < p-1; {
 		bridgeCounter++
 		counter++
+
 		tanLines := []Line{}
 		tanLineHullIdx := [][]int{}
 		for j := i + 1; j < p; j++ {

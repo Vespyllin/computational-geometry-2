@@ -8,15 +8,24 @@ func GIFT_CH(points []Point) ([]Point, int) {
 		return points, counter
 	}
 
-	hull := []Point{}
+	hull := make([]Point, 0, len(points))
 
-	p := 0
+	leftMost := 0
+	for i := 1; i < n; i++ {
+		counter++
+		if points[i].X < points[leftMost].X || (points[i].X == points[leftMost].X && points[i].Y < points[leftMost].Y) {
+			leftMost = i
+		}
+	}
+
+	p := leftMost
 	for {
 		counter++
 		hull = append(hull, points[p])
 
 		q := (p + 1) % n
 		for i := 0; i < n; i++ {
+			counter++
 			if orientation(points[p], points[i], points[q]) == RIGHT {
 				q = i
 			}
@@ -24,10 +33,7 @@ func GIFT_CH(points []Point) ([]Point, int) {
 
 		p = q
 
-		// Special termination condition for upper hull
-		// Once we reach the rightmost point return the hull
-		if points[q].X == points[len(points)-1].X && points[q].Y == points[len(points)-1].Y {
-			hull = append(hull, points[p])
+		if p == leftMost {
 			return hull, counter
 		}
 	}
