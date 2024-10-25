@@ -75,14 +75,14 @@ func writeBenchmarkLineToCSV(writer *csv.Writer, n, hull_size, sortTime int, run
 }
 
 func benchMarkGW() {
-	sizes := []int{32000}
-	for i := 0; i < 11; i++ {
+	sizes := []int{256000}
+	for i := 0; i < 8; i++ {
 		sizes = append(sizes, sizes[len(sizes)-1]*2)
 	}
-	iterations := 3
+	iterations := 25
 	floatConstant := 10000.0
 
-	file, err := os.OpenFile("data/gw/gw.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("data/gw.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		return
@@ -105,7 +105,7 @@ func benchMarkGW() {
 			pointsSquare := generatePointsInSquare(n, floatConstant)
 			pointsCircle := generatePointsInCircle(n, floatConstant)
 			pointsCurve := generatePointsOnCurve(n, floatConstant)
-			if n > 256000 {
+			if n >= 256000 {
 				pointsCurve = []ch.Point{}
 			}
 
@@ -152,14 +152,14 @@ func benchMarkGW() {
 }
 
 func benchMarkGS() {
-	sizes := []int{128000}
-	for i := 0; i < 9; i++ {
+	sizes := []int{32000}
+	for i := 0; i < 11; i++ {
 		sizes = append(sizes, sizes[len(sizes)-1]*2)
 	}
-	iterations := 3
+	iterations := 25
 	floatConstant := 10000.0
 
-	for testClass := 2; testClass < 3; testClass++ {
+	for testClass := 0; testClass < 3; testClass++ {
 
 		var fileName string
 		if testClass == 0 {
@@ -172,7 +172,7 @@ func benchMarkGS() {
 
 		fmt.Println("Starting ", fileName, " benchmarks.")
 
-		file, err := os.OpenFile("data/"+fileName+"/"+fileName+".csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile("data/"+fileName+".csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Println("Error opening file:", err)
 			return
@@ -239,7 +239,7 @@ func benchMarkGS() {
 				backtrackCounters = append(backtrackCounters, bckCtrSeq, bckCtrP1, bckCtrP3, bckCtrP6)
 				bridgeCounters = append(bridgeCounters, 0, bridgeCtrP1, bridgeCtrP3, bridgeCtrP6)
 
-				fmt.Println("Writing results...", len(h), elapsedSort)
+				fmt.Println("Writing results...")
 				writeBenchmarkLineToCSV(writer, n, len(h), int(elapsedSort), times, programCounters, backtrackCounters, bridgeCounters)
 				fmt.Println()
 			}
@@ -250,6 +250,6 @@ func benchMarkGS() {
 }
 
 func main() {
-	benchMarkGS()
+	// benchMarkGS()
 	benchMarkGW()
 }
